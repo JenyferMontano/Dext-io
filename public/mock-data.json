@@ -1,0 +1,151 @@
+{
+  "communities": [
+    { "id": "tech", "name": "Tecnología", "slug": "tech", "members": 128400, "description": "Software, hardware y el futuro." },
+    { "id": "gaming", "name": "Videojuegos", "slug": "gaming", "members": 95600, "description": "Juegos, streams y esports." },
+    { "id": "news", "name": "Noticias", "slug": "news", "members": 201000, "description": "Titulares locales y del mundo." },
+    { "id": "science", "name": "Ciencia", "slug": "science", "members": 74200, "description": "Investigación, espacio y descubrimientos." },
+    { "id": "movies", "name": "Cine y series", "slug": "movies", "members": 88000, "description": "Películas, series y tráilers." }
+  ],
+  "user": {
+    "id": "u1",
+    "username": "alex_dev",
+    "displayName": "Alex Rivera",
+    "bio": "Ingeniero frontend · Entusiasta de las PWA · Impulsado por café.",
+    "karma": 8420,
+    "joined": "2021-03-15"
+  },
+  "posts": [
+    {
+      "id": "p1",
+      "title": "Por qué los Service Workers cambiaron cómo construyo apps sin conexión",
+      "content": "Las estrategias de caché no sirven todas para lo mismo. Así combino carrera red/caché, red primero y shell estático…",
+      "author": "alex_dev",
+      "userId": "u1",
+      "communityId": "tech",
+      "recommendations": 942,
+      "publishedAt": "2026-04-09T08:00:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext1/800/450"
+    },
+    {
+      "id": "p2",
+      "title": "Consolas de nueva generación: ¿a qué jugáis este fin de semana?",
+      "content": "Busco recomendaciones cooperativas. Prefiero indies por menos de 30 $.",
+      "author": "jamie_plays",
+      "userId": "u2",
+      "communityId": "gaming",
+      "recommendations": 512,
+      "publishedAt": "2026-04-09T06:30:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext2/800/450"
+    },
+    {
+      "id": "p3",
+      "title": "Última hora: cumbre climática cierra con nuevos objetivos",
+      "content": "Los líderes acordaron plazos más ambiciosos. Detalles dentro.",
+      "author": "news_bot",
+      "userId": "u3",
+      "communityId": "news",
+      "recommendations": 2301,
+      "publishedAt": "2026-04-09T05:15:00.000Z",
+      "imageUrl": null
+    },
+    {
+      "id": "p4",
+      "title": "Rust vs Go para herramientas CLI en 2026",
+      "content": "Migré una herramienta de ~5k líneas. Los tiempos de compilación importan más de lo que pensaba.",
+      "author": "alex_dev",
+      "userId": "u1",
+      "communityId": "tech",
+      "recommendations": 1203,
+      "publishedAt": "2026-04-08T14:20:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext4/800/450"
+    },
+    {
+      "id": "p5",
+      "title": "El JWST captura otro campo profundo espectacular",
+      "content": "Los astrónomos estiman miles de galaxias en este solo encuadre.",
+      "author": "sky_watcher",
+      "userId": "u4",
+      "communityId": "science",
+      "recommendations": 3402,
+      "publishedAt": "2026-04-08T11:00:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext5/800/450"
+    },
+    {
+      "id": "p6",
+      "title": "Ciencia ficción infravalorada de la última década — ¡a ver!",
+      "content": "Sin spoilers. Veré todo lo que recomendéis.",
+      "author": "cine_phile",
+      "userId": "u5",
+      "communityId": "movies",
+      "recommendations": 887,
+      "publishedAt": "2026-04-07T16:45:00.000Z",
+      "imageUrl": null
+    },
+    {
+      "id": "p7",
+      "title": "Container queries en CSS en producción: lecciones aprendidas",
+      "content": "Las desplegamos en nuestro sistema de diseño. Esto es lo que se rompió.",
+      "author": "alex_dev",
+      "userId": "u1",
+      "communityId": "tech",
+      "recommendations": 654,
+      "publishedAt": "2026-04-07T09:10:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext7/800/450"
+    },
+    {
+      "id": "p8",
+      "title": "Maratón benéfico de speedruns supera los 2 M$",
+      "content": "Recuento final y enlaces a los mejores momentos en comentarios.",
+      "author": "jamie_plays",
+      "userId": "u2",
+      "communityId": "gaming",
+      "recommendations": 4100,
+      "publishedAt": "2026-04-06T22:00:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext8/800/450"
+    },
+    {
+      "id": "p9",
+      "title": "Elecciones locales: ¿qué llevas en la papeleta?",
+      "content": "Hilo apartidista: compartid recursos, no eslóganes.",
+      "author": "civic_mind",
+      "userId": "u6",
+      "communityId": "news",
+      "recommendations": 321,
+      "publishedAt": "2026-04-06T18:30:00.000Z",
+      "imageUrl": null
+    },
+    {
+      "id": "p10",
+      "title": "¿El agua moja? La respuesta desde la ciencia",
+      "content": "Depende de las definiciones. Aquí va una respuesta pedante pero correcta.",
+      "author": "sky_watcher",
+      "userId": "u4",
+      "communityId": "science",
+      "recommendations": 9999,
+      "publishedAt": "2026-04-05T12:00:00.000Z",
+      "imageUrl": "https://picsum.photos/seed/dext10/800/450"
+    },
+    {
+      "id": "p11",
+      "title": "Mejores bandas sonoras para concentrarse",
+      "content": "Ambient, lo-fi o clásica — ¿qué os funciona?",
+      "author": "cine_phile",
+      "userId": "u5",
+      "communityId": "movies",
+      "recommendations": 445,
+      "publishedAt": "2026-04-04T10:20:00.000Z",
+      "imageUrl": null
+    },
+    {
+      "id": "p12",
+      "title": "Notas de migración a Vite 6 en una app mediana",
+      "content": "Plugins, variables de entorno y algunos bordes afilados.",
+      "author": "alex_dev",
+      "userId": "u1",
+      "communityId": "tech",
+      "recommendations": 278,
+      "publishedAt": "2026-04-03T07:55:00.000Z",
+      "imageUrl": null
+    }
+  ]
+}
