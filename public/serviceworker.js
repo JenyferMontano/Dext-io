@@ -26,7 +26,7 @@ const STATIC_PRECACHE = [
   '/index.html',
   '/manifest.json',
   '/serviceworker.js',
-  '/icons/icon.svg',
+  '/icons/dext.png',
   '/no-image.png',
   '/mock-data.json',
 ];
@@ -212,7 +212,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          if (res && res.ok) return res;
+          if (res && (res.ok || res.type === 'opaque')) return res;
           return caches.match('/no-image.png');
         })
         .catch(() => caches.match('/no-image.png'))
