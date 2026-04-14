@@ -2,7 +2,7 @@
 
 **Dext.io** es una aplicación web de una sola página (**SPA**) inspirada en Reddit: feed de publicaciones, comunidades y perfiles. Está hecha con **React**, **Vite** y **React Router**, e incluye una **PWA** con **Service Worker manual**, cachés avanzadas y soporte **sin conexión**. La interfaz está en **español**.
 
-Este documento sirve como **guía técnica** y como **guion para una exposición** (resume la sección 8 al final).
+Este documento sirve como **guía técnica** de la aplicación.
 
 ### Índice
 
@@ -13,7 +13,6 @@ Este documento sirve como **guía técnica** y como **guion para una exposición
 5. [PWA y Service Worker](#5-pwa-y-service-worker)  
 6. [Funcionalidades avanzadas](#6-funcionalidades-avanzadas)  
 7. [Experiencia de usuario](#7-experiencia-de-usuario)  
-8. [Cómo explicarlo en una exposición](#8-cómo-explicarlo-en-una-exposición)  
 · [Ejecución local, scripts y anexos](#requisitos-previos)
 
 ---
@@ -186,34 +185,6 @@ Los estilos en **`index.css`** usan un enfoque **mobile-first**: anchos máximos
 
 ---
 
-## 8. Cómo explicarlo en una exposición
-
-### Versión corta (2–3 minutos)
-
-> “**Dext.io** es una aplicación web tipo Reddit construida como **SPA con React**: una sola página HTML y el resto son vistas que cambian con **React Router**, sin recargar el sitio entero.  
-> Los datos vienen de un **JSON local** y, si hay internet, de una API de prueba. Lo importante del trabajo es la **PWA**: un **Service Worker** que yo mismo programé, con **tres cachés** y estrategias distintas — **caché primero**, **red primero** y **carrera** — para que la app **aguante sin conexión** cuando ya se visitó antes.  
-> Además hay demos de **Background Sync** y **push** en la consola, y la interfaz es **responsive** con **fallback** de imágenes.”
-
-### Frases clave que puedes decir
-
-- “**SPA**: una página, muchas vistas; el servidor no entrega HTML nuevo en cada clic.”
-- “**React Router** enlaza la URL con el componente que toca; la experiencia es como una app.”
-- “El **Service Worker** es un **intermediario** entre la app y la red: puede **cachear** y **decidir** qué servir sin conexión.”
-- “**static / dynamic / immutable** son tres **cajones** de caché con **propósitos distintos**.”
-- “**Offline** aquí no es magia: es **contenido ya guardado** más **datos de respaldo** en código.”
-
-### Cómo explicar conceptos técnicos con sencillez
-
-| Concepto | Analogía o explicación breve |
-|----------|-------------------------------|
-| **SPA** | Como un **solo lienzo** donde cambias lo pintado, en lugar de pedir un **cuadro nuevo** al almacén cada vez. |
-| **Service Worker** | Un **ayudante invisible** que puede tener **copias** de archivos y **decidir** si te da la copia o va a internet. |
-| **Cache First** | “**Si tengo fotocopia**, la uso; si no, imprimo.” |
-| **Network First** | “**Intento lo nuevo** en internet; si no va, **uso la fotocopia**.” |
-| **Race** | “**Red y caché corren**; el primero que llega con una respuesta válida gana.” |
-| **PWA** | Un sitio web que se puede **instalar** y **comportarse** más como aplicación nativa. |
-
----
 
 ## Requisitos previos
 
