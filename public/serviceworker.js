@@ -1,25 +1,12 @@
-/**
- * Dext.io — Service Worker manual
- *
- * Ciclo de vida: install → activate → fetch
- *
- * Cachés (versión en CACHE_VERSION, p. ej. static-v9):
- * - static-*   — shell, mock-data, /assets (Cache First)
- * - dynamic-*  — navegaciones HTML y APIs externas (Network First / carrera)
- * - immutable-* — fuentes/CDN de larga vida (Cache First, opcional)
- */
-
 const CACHE_VERSION = 'v9';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMMUTABLE_CACHE = `immutable-${CACHE_VERSION}`;
 
-/** Máximo de entradas por caché (se eliminan las más antiguas). */
 const MAX_ITEMS = 50;
 
 const IMMUTABLE_HOST_HINTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'unpkg.com', 'cdn.jsdelivr.net'];
 
-/** URLs precacheadas para el shell sin conexión (válidas tras `vite build`). */
 const STATIC_PRECACHE = [
   '/',
   '/index.html',
@@ -30,7 +17,6 @@ const STATIC_PRECACHE = [
   '/mock-data.json',
 ];
 
-/** Rutas /assets/*.js|css referenciadas en index.html (Vite); no van en STATIC_PRECACHE porque el hash cambia en cada build. */
 async function precacheViteBundles(staticCache) {
   const indexRes = await staticCache.match('/index.html');
   const html = indexRes ? await indexRes.text() : '';
@@ -52,7 +38,6 @@ async function precacheViteBundles(staticCache) {
   );
 }
 
-// --- install ---
 self.addEventListener('install', (event) => {
   console.log('[SW] install — versión', CACHE_VERSION);
   event.waitUntil(
@@ -97,7 +82,6 @@ async function trimCache(cacheName) {
   }
 }
 
-// --- activate ---
 self.addEventListener('activate', (event) => {
   console.log('[SW] activate');
   event.waitUntil(
@@ -132,10 +116,6 @@ function isImmutableCDN(url) {
   return IMMUTABLE_HOST_HINTS.some((h) => url.hostname.includes(h));
 }
 
-/**
- * Vite emite <script crossorigin> / <link crossorigin>: la petición del documento no coincide
- * en clave con la guardada en install (Request distinto) → cache.match(request) falla sin esto.
- */
 async function matchInCacheFlexible(cache, request) {
   let hit = await cache.match(request);
   if (hit) return hit;
@@ -152,13 +132,12 @@ async function matchInCacheFlexible(cache, request) {
         hit = await cache.match(key);
         if (hit) return hit;
       }
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
   return null;
 }
 
+// Estrategia: cache first (caché → red → guardar si ok).
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   let cached =
@@ -182,6 +161,7 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
+// Estrategia: network first (red → caché si falla u offline).
 async function networkFirst(request, cacheName) {
   if (self.navigator && self.navigator.onLine === false) {
     const cached = await caches.match(request);
@@ -212,13 +192,12 @@ async function networkFirst(request, cacheName) {
   }
 }
 
+// Estrategia: navegación / HTML (caché → red → index.html en caché).
 async function networkCacheRace(request, cacheName) {
   const cache = await caches.open(cacheName);
   const isHtml =
     request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html');
 
-  /* Caché primero: si DevTools está en "Sin conexión", navigator.onLine a veces sigue true en el SW
-   * y un Promise.race con fetch() generaba siempre una fila roja aunque luego respondiéramos bien. */
   let fromCache = await caches.match(request);
   if (fromCache) return fromCache;
 
@@ -238,9 +217,7 @@ async function networkCacheRace(request, cacheName) {
       await trimCache(cacheName);
     }
     if (response && response.ok) return response;
-  } catch {
-    /* red caída pese a onLine true (p. ej. throttling Offline) */
-  }
+  } catch {}
 
   if (isHtml) {
     const shell = await caches.match('/index.html');
@@ -252,7 +229,6 @@ async function networkCacheRace(request, cacheName) {
   return new Response('Sin conexión', { status: 503, statusText: 'Servicio no disponible' });
 }
 
-/** Vite dev: no cachear módulos ni CSS en vivo (evita UI desactualizada / grid roto). */
 function isViteDevBypass(url) {
   const h = url.hostname;
   const p = url.pathname;
@@ -303,8 +279,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* JSON del shell en precache (STATIC). `isApiRequest` incluye *.json y mandaría el manifiesto por
-   * networkFirst → fetch fallido en offline y filas rojas en Red; el manifiesto debe ser caché primero. */
   if (
     url.pathname === '/mock-data.json' ||
     url.pathname.endsWith('/mock-data.json') ||
