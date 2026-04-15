@@ -94,7 +94,7 @@ export function CommunityFeed() {
           <span>{title}</span>
         </p>
         <h1>{title}</h1>
-        <p className="page-sub">Artículos en esta sección del archivo</p>
+        <p className="page-sub">Publicaciones de esta categoría</p>
       </header>
       
       <div className="feed-filters-container feed-filters-container--border">
@@ -139,7 +139,6 @@ export function CommunityFeed() {
           </div>
           <div ref={sentinelRef} className="scroll-sentinel" aria-hidden />
           {loading ? <p className="load-hint">Cargando…</p> : null}
-          {!hasMore && posts.length > 0 ? <p className="load-hint">Fin del feed</p> : null}
         </>
       )}
     </div>

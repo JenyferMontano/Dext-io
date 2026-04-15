@@ -951,58 +951,8 @@ a:hover {
 }
 
 .site-footer-tagline {
-  margin: 0 0 0.5rem;
+  margin: 0;
   letter-spacing: 0.04em;
-}
-
-.footer-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  align-items: center;
-  margin-top: 0.75rem;
-}
-
-.footer-actions-kicker {
-  width: 100%;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.15rem;
-}
-
-.btn-ghost {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.4rem 0.75rem;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.btn-ghost:hover {
-  border-color: var(--text);
-}
-
-.footer-msg {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-  font-style: italic;
-}
-
-@media (min-width: 768px) {
-  .footer-actions-kicker {
-    width: auto;
-    margin-right: 0.5rem;
-    margin-bottom: 0;
-  }
 }
 
 @media (max-width: 1023px) {

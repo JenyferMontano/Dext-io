@@ -65,7 +65,7 @@ export function UserProfileRail() {
           Notificaciones
           <span className="notif-dot" aria-hidden />
         </h3>
-        <p className="profile-rail-muted">Sin alertas nuevas en esta demostración.</p>
+        <p className="profile-rail-muted">No hay notificaciones pendientes</p>
       </div>
 
       

@@ -29,7 +29,7 @@ export function PopularSectionsColumn() {
         ))}
       </ul>
       <Link to={routes.communities} className="rail-section-more">
-        Ver índice completo
+        Ver todas las secciones
       </Link>
     </aside>
   );

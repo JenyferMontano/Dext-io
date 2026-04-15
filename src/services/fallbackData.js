@@ -7,8 +7,8 @@ export const FALLBACK_PAYLOAD = {
   ],
   user: {
     id: 'u1',
-    username: 'alex_dev',
-    displayName: 'Alex Rivera',
+    username: 'Eddier_Lopez',
+    displayName: 'Eddier Lopez',
     bio: 'Perfil de respaldo sin conexión.',
     karma: 0,
     joined: '—',

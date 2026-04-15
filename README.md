@@ -11,8 +11,7 @@ Este documento sirve como **guía técnica** de la aplicación.
 3. [Módulos principales](#3-módulos-principales)  
 4. [Manejo de datos](#4-manejo-de-datos)  
 5. [PWA y Service Worker](#5-pwa-y-service-worker)  
-6. [Funcionalidades avanzadas](#6-funcionalidades-avanzadas)  
-7. [Experiencia de usuario](#7-experiencia-de-usuario)  
+6. [Experiencia de usuario](#6-experiencia-de-usuario)  
 · [Ejecución local, scripts y anexos](#requisitos-previos)
 
 ---
@@ -21,7 +20,7 @@ Este documento sirve como **guía técnica** de la aplicación.
 
 ### ¿Qué es Dext.io?
 
-Es una **plataforma de demostración** que imita lo esencial de un foro tipo Reddit: ver publicaciones en un feed, explorar **comunidades** (como “subreddits”) y consultar un **perfil de usuario** con sus posts. No hay base de datos ni servidor propio: los datos son **simulados** (archivo JSON) y, opcionalmente, se enriquecen con una API pública de prueba cuando hay internet.
+Es una **plataforma de demostración** que imita lo esencial de un foro tipo Reddit: ver publicaciones en un feed, explorar **comunidades** (como “subreddits”) y consultar un **perfil de usuario** con sus posts. No hay base de datos ni servidor propio: los datos son **simulados** con el archivo **`mock-data.json`** (y un respaldo embebido si no se puede cargar).
 
 ### ¿Qué problema resuelve?
 
@@ -65,7 +64,6 @@ Eso es lo que se entiende por **navegación del lado del cliente**.
 | **`src/components/`** | Piezas reutilizables: barra superior, tarjeta de post, banner offline, imagen con fallback, etc. |
 | **`src/services/`** | Lógica de **datos**: leer `mock-data.json`, paginar, filtros, datos de respaldo. |
 | **`src/router/routes.js`** | Rutas centralizadas (evita escribir URLs a mano en muchos sitios). |
-| **`src/utils/`** | Utilidades, por ejemplo el registro de **Background Sync** para la demo. |
 | **`public/`** | Archivos **estáticos** servidos tal cual: manifiesto PWA, Service Worker, JSON de datos, iconos. |
 
 Tras **`npm run build`**, Vite genera **`dist/`** con el HTML, los JS/CSS empaquetados y una copia de **`public/`**.
@@ -78,7 +76,7 @@ Tras **`npm run build`**, Vite genera **`dist/`** con el HTML, los JS/CSS empaqu
 
 **Qué hace:** Muestra un **listado de publicaciones** con **scroll infinito**: al acercarse al final, se cargan más entradas (paginación por páginas en el servicio).
 
-**Internamente:** La página **`Home.jsx`** llama a **`getPosts`** en `postsService.js`. Puede mezclar posts del JSON local con unas pocas entradas de demostración desde **JSONPlaceholder** si hay conexión. Los **votos** en cada tarjeta son **solo en memoria** (no se guardan en servidor).
+**Internamente:** La página **`Home.jsx`** llama a **`getPosts`** en `postsService.js` (solo datos de `mock-data.json`). Los **votos** en cada tarjeta son **solo en memoria** (no se guardan en servidor).
 
 ### Comunidades — rutas `/communities` y `/c/:slug`
 
@@ -100,15 +98,13 @@ Tras **`npm run build`**, Vite genera **`dist/`** con el HTML, los JS/CSS empaqu
 
 1. **Fuente principal:** **`public/mock-data.json`** — comunidades, un usuario de ejemplo y una lista de posts (títulos, textos, votos, imágenes opcionales).
 2. **Respaldo embebido:** **`src/services/fallbackData.js`** — un JSON mínimo en código por si **no se puede leer** el archivo (por ejemplo, primera visita sin red y sin nada en caché).
-3. **Opcional con red:** **`postsService.js`** puede pedir algunos posts a **JSONPlaceholder** y mostrarlos como publicaciones de demostración con texto en español.
-
-El **Service Worker** puede **guardar en caché** la respuesta de `mock-data.json`, de modo que en visitas posteriores **no hace falta red** para leer esos datos.
+El **Service Worker** **precarga** `mock-data.json` al instalarse y lo sirve con **caché primero** desde la caché estática, de modo que **suele funcionar sin red** tras una visita en línea (tras completar la instalación del SW).
 
 ### Qué pasa si no hay internet
 
 - Si **ya hubo una visita con éxito**, el SW suele poder **servir el JSON y el shell** desde caché → la app sigue mostrando contenido.
 - Si **nunca hubo carga exitosa** y no hay caché, entra el **`fallbackData`** → al menos un mensaje coherente de “sin conexión”.
-- Un **banner** avisa que estás offline; las **imágenes** que fallen cargan **`no-image.png`**.
+- Un **aviso en la cabecera** (píldora en el layout) indica que estás sin conexión; las **imágenes** que fallen pueden mostrar **`no-image.png`** (incluido apoyo desde el Service Worker para orígenes externos).
 
 ---
 
@@ -122,52 +118,40 @@ Es un **script que el navegador ejecuta en segundo plano**, separado de la pesta
 
 | Fase | Qué ocurre |
 |------|------------|
-| **install** | Primera instalación del SW: suele **precargar** URLs críticas (HTML, manifiesto, JSON, imagen de fallback) en la caché **estática**. Luego `skipWaiting()` para activarse pronto. |
-| **activate** | El SW toma control: se **borran cachés viejas** de versiones anteriores y se limita el tamaño de las cachés actuales. |
-| **fetch** | En cada petición HTTP relevante, el SW aplica la **estrategia** elegida (red primero, caché primero, carrera, etc.). |
+| **install** | Primera instalación del SW: **precarga** URLs críticas (HTML, manifiesto, `mock-data.json`, iconos, etc.) en la caché **estática**; además lee el `index.html` cacheado y **precarga los bundles** `/assets/*.js` y `.css` que genera Vite para que el offline no quede sin estilos ni script. Luego `skipWaiting()` para activarse pronto. |
+| **activate** | El SW toma control: se **borran cachés viejas** de versiones anteriores y se limita el tamaño de la caché dinámica. |
+| **fetch** | En cada petición **GET** relevante, el SW aplica la **estrategia** elegida (caché primero, red primero, carrera, etc.). |
 
-Además existen otros eventos del SW que **no** son el ciclo principal, pero sí aparecen en este proyecto: **`sync`** (Background Sync) y **`push`** (notificaciones). Están descritos en la [sección 6](#6-funcionalidades-avanzadas).
+El ciclo del SW se limita a **install → activate → fetch** (no hay listeners de `sync` ni `push`).
 
 ### Tipos de caché en este proyecto
 
-| Nombre | Uso típico |
-|--------|------------|
-| **`static-v1`** | **Shell y estáticos** del propio sitio (HTML, JS/CSS del build, iconos, etc.): contenido que no cambia en cada petición de la misma forma que un JSON dinámico. |
-| **`dynamic-v1`** | **Respuestas variables**: JSON de datos, HTML de navegación, llamadas a APIs. Es lo que más se usa para **offline** con contenido ya visitado. |
-| **`immutable-v1`** | Recursos de **CDN** con URLs versionadas (fuentes, librerías): se pueden cachear de forma muy agresiva porque la URL “nueva” es otro recurso. |
+Los nombres incluyen un sufijo de versión (`CACHE_VERSION` en `serviceworker.js`, p. ej. **`v9`**): al subir de versión, `activate` **elimina** cachés antiguas (`static-v8`, `dynamic-v8`, …).
 
-Los nombres llevan **`v1`** para poder subir a **`v2`** y borrar lo obsoleto en `activate`.
+| Nombre (ejemplo) | Uso típico |
+|-------------------|------------|
+| **`static-v*`** | **Shell y estáticos**: `index.html`, `mock-data.json`, JS/CSS de `/assets/`, iconos, `no-image.png`. Muchas respuestas usan **caché primero**. |
+| **`dynamic-v*`** | **HTML de navegación** ya visitado y otras respuestas variables: **red primero** o **carrera** red/caché, con respaldo en caché si hace falta. |
+| **`immutable-v*`** | Recursos de **CDN** (fuentes Google, etc.): **caché primero**. |
 
 ### Estrategias de caché utilizadas
 
 - **Cache First:** primero mira la caché; si no hay, va a la red y guarda. Buena para **JS/CSS/imágenes** del propio dominio que no cambian en cada segundo.
-- **Network First:** primero la red; si falla, usa la caché. Ideal para **datos** que quieres frescos pero con **respaldo offline**.
-- **Red + caché en carrera (*race*):** compite red y caché; la que responda válida primero gana, con **fallbacks** si algo falla. Muy útil para **mejorar la sensación de velocidad** y seguir teniendo plan B.
+- **Network First:** primero la red; si falla, usa la caché. Se usa para **otros JSON** del mismo origen (no el `mock-data.json` del precache); **`mock-data.json`** va con **caché primero** en la caché estática.
+- **HTML / navegación (`networkCacheRace`):** primero **caché** (URL exacta o `index.html` como shell SPA); solo si no hay copia se pide **red** y se guarda en la caché dinámica. Así en offline (incluso si `navigator.onLine` no refleja bien el “Sin conexión” de DevTools) no se dispara un `fetch` innecesario que aparezca en rojo en la pestaña Red.
 
 Además hay **límite de entradas** (`MAX_ITEMS`) y **limpieza** para no llenar el disco.
 
 ### Cómo funciona el modo offline
 
 1. El usuario visita la app **con conexión** → el SW **instala** y **llena** cachés.
-2. Si luego **no hay red**, el evento **`fetch`** sigue activo: muchas peticiones se responden desde **`dynamic-v1`** o **`static-v1`**.
+2. Si luego **no hay red**, el evento **`fetch`** sigue activo: muchas peticiones se responden desde la caché **estática** o **dinámica** (según el tipo de recurso).
 3. Si falta algo que nunca se cacheó, se intenta **SPA shell** (`index.html`) para rutas de navegación, o **mensaje/plantilla** de error.
 4. El **manifiesto** (`manifest.json`) permite **instalar** la app en la pantalla de inicio con aspecto **standalone**.
 
 ---
 
-## 6. Funcionalidades avanzadas
-
-### Background Sync
-
-La **API de sincronización en segundo plano** permite **registrar una tarea** que el navegador ejecutará cuando vuelva la conectividad (por ejemplo, reenviar un formulario). En este proyecto está **simulada**: el SW escucha el evento **`sync`** con la etiqueta **`dext-sync-posts`** y solo hace **logs** en consola, como si en el futuro se enviaran votos o borradores al servidor. Desde el pie de página se puede **registrar** esa sincronización (si el navegador lo permite).
-
-### Push notifications (simuladas)
-
-Las notificaciones **push** reales requieren servidor, claves y permisos. Aquí el SW escucha el evento **`push`** y **registra en consola** que habría llegado un mensaje — es una **demostración del hook**, no una notificación real al usuario. Sirve para explicar en clase **dónde** encajaría el código real (`showNotification`, etc.).
-
----
-
-## 7. Experiencia de usuario
+## 6. Experiencia de usuario
 
 ### Diseño responsivo
 
@@ -175,7 +159,7 @@ Los estilos en **`index.css`** usan un enfoque **mobile-first**: anchos máximos
 
 ### Comportamiento offline
 
-- **Banner** cuando `navigator.onLine` es falso.
+- **Indicador** en el layout cuando `navigator.onLine` es falso.
 - **Datos:** caché del SW + `fallbackData` si hace falta.
 - **Navegación SPA:** si el shell está cacheado, muchas rutas siguen abriendo la app aunque no haya red (limitado por lo que ya se haya guardado).
 
@@ -213,7 +197,7 @@ npm run icons
 npm run dev
 ```
 
-Por defecto: **http://localhost:5173**. Los Service Workers funcionan en **localhost** (HTTP).
+Por defecto: **http://localhost:5173**. En **modo desarrollo**, `main.jsx` **desregistra** los Service Workers para evitar cachés rotas con los módulos en vivo; para probar el SW usa **`npm run preview`** tras un **`npm run build`**.
 
 ### Producción
 
@@ -256,8 +240,7 @@ dext-io/
     ├── components/
     ├── pages/
     ├── services/
-    ├── router/
-    └── utils/
+    └── router/
 ```
 
 ---
@@ -267,7 +250,7 @@ dext-io/
 1. Arranca `npm run dev` o `npm run preview`.
 2. Abre la app **con red** al menos una vez.
 3. DevTools → **Aplicación** → **Service Workers** → comprobar registro.
-4. **Red** → **Sin conexión** → recargar y navegar.
+4. **Red** → **Sin conexión** → esperar a que el Service Worker termine de **instalar** (o recargar una vez en línea) y luego recargar y navegar.
 
 ---
 

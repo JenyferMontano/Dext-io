@@ -1,16 +1,15 @@
 /**
  * Dext.io — Service Worker manual
  *
- * Ciclo de vida: install → activate → fetch (+ sincronización en segundo plano)
- * También: sync (Background Sync), push (Push API — registro de demostración)
+ * Ciclo de vida: install → activate → fetch
  *
- * Cachés:
- * - static-v1   — shell y estáticos (Cache First)
- * - dynamic-v1  — JSON de API y navegaciones HTML (Network First / carrera)
- * - immutable-v1 — CDN de larga vida (Cache First, opcional)
+ * Cachés (versión en CACHE_VERSION, p. ej. static-v9):
+ * - static-*   — shell, mock-data, /assets (Cache First)
+ * - dynamic-*  — navegaciones HTML y APIs externas (Network First / carrera)
+ * - immutable-* — fuentes/CDN de larga vida (Cache First, opcional)
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v9';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMMUTABLE_CACHE = `immutable-${CACHE_VERSION}`;
@@ -31,18 +30,43 @@ const STATIC_PRECACHE = [
   '/mock-data.json',
 ];
 
+/** Rutas /assets/*.js|css referenciadas en index.html (Vite); no van en STATIC_PRECACHE porque el hash cambia en cada build. */
+async function precacheViteBundles(staticCache) {
+  const indexRes = await staticCache.match('/index.html');
+  const html = indexRes ? await indexRes.text() : '';
+  if (!html) return;
+  const paths = new Set();
+  const re = /\/assets\/[a-zA-Z0-9._-]+\.(?:js|css)/g;
+  let m;
+  while ((m = re.exec(html))) {
+    paths.add(m[0]);
+  }
+  if (!paths.size) return;
+  console.log('[SW] install — precarga de bundles Vite', [...paths]);
+  await Promise.all(
+    [...paths].map((path) =>
+      staticCache.add(new Request(path, { cache: 'reload' })).catch((err) => {
+        console.warn('[SW] install — no se pudo cachear', path, err);
+      })
+    )
+  );
+}
+
 // --- install ---
 self.addEventListener('install', (event) => {
   console.log('[SW] install — versión', CACHE_VERSION);
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
-      .then((cache) => {
+      .then(async (cache) => {
         console.log('[SW] install — precarga del shell');
-        return cache.addAll(STATIC_PRECACHE.map((url) => new Request(url, { cache: 'reload' }))).catch((err) => {
+        try {
+          await cache.addAll(STATIC_PRECACHE.map((url) => new Request(url, { cache: 'reload' })));
+        } catch (err) {
           console.warn('[SW] install — fallo parcial al precargar', err);
-          return cache.add('/index.html').catch(() => {});
-        });
+          await cache.add('/index.html').catch(() => {});
+        }
+        await precacheViteBundles(cache);
       })
       .then(() => self.skipWaiting())
   );
@@ -101,30 +125,73 @@ function isStaticAsset(url) {
 }
 
 function isApiRequest(url) {
-  return (
-    url.hostname.includes('jsonplaceholder.typicode.com') ||
-    url.pathname.includes('/api/') ||
-    url.pathname.endsWith('.json')
-  );
+  return url.pathname.includes('/api/') || url.pathname.endsWith('.json');
 }
 
 function isImmutableCDN(url) {
   return IMMUTABLE_HOST_HINTS.some((h) => url.hostname.includes(h));
 }
 
-async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
-  const response = await fetch(request);
-  if (response && response.ok) {
-    const cache = await caches.open(cacheName);
-    await cache.put(request, response.clone());
-    await trimCache(cacheName);
+/**
+ * Vite emite <script crossorigin> / <link crossorigin>: la petición del documento no coincide
+ * en clave con la guardada en install (Request distinto) → cache.match(request) falla sin esto.
+ */
+async function matchInCacheFlexible(cache, request) {
+  let hit = await cache.match(request);
+  if (hit) return hit;
+  let pathname;
+  try {
+    pathname = new URL(request.url).pathname;
+  } catch {
+    return null;
   }
-  return response;
+  const keys = await cache.keys();
+  for (const key of keys) {
+    try {
+      if (new URL(key.url).pathname === pathname) {
+        hit = await cache.match(key);
+        if (hit) return hit;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+async function cacheFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  let cached =
+    cacheName === STATIC_CACHE
+      ? await matchInCacheFlexible(cache, request)
+      : await cache.match(request);
+  if (!cached) {
+    cached = await caches.match(request);
+  }
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+      await trimCache(cacheName);
+    }
+    return response;
+  } catch (e) {
+    console.log('[SW] cacheFirst — sin red y sin caché para', request.url);
+    return new Response('', { status: 503, statusText: 'Sin conexion' });
+  }
 }
 
 async function networkFirst(request, cacheName) {
+  if (self.navigator && self.navigator.onLine === false) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return new Response(JSON.stringify({ sinConexion: true }), {
+      status: 503,
+      statusText: 'Sin conexión',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
   try {
     const response = await fetch(request);
     if (response && response.ok) {
@@ -147,38 +214,40 @@ async function networkFirst(request, cacheName) {
 
 async function networkCacheRace(request, cacheName) {
   const cache = await caches.open(cacheName);
+  const isHtml =
+    request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html');
 
-  const networkPromise = fetch(request)
-    .then((response) => {
-      if (response && response.ok) {
-        cache.put(request, response.clone()).then(() => trimCache(cacheName));
-      }
-      return response;
-    })
-    .catch(() => null);
-
-  const cachePromise = caches.match(request);
-
-  const raced = await Promise.race([
-    networkPromise,
-    cachePromise.then((r) => {
-      if (r) return r;
-      return Promise.reject(new Error('sin-caché'));
-    }),
-  ]).catch(() => null);
-
-  if (raced && raced.ok) return raced;
-
-  const net = await networkPromise;
-  if (net && net.ok) return net;
-
-  const fromCache = await caches.match(request);
+  /* Caché primero: si DevTools está en "Sin conexión", navigator.onLine a veces sigue true en el SW
+   * y un Promise.race con fetch() generaba siempre una fila roja aunque luego respondiéramos bien. */
+  let fromCache = await caches.match(request);
   if (fromCache) return fromCache;
 
-  if (request.mode === 'navigate') {
+  if (isHtml) {
+    fromCache = await caches.match('/index.html');
+    if (fromCache) return fromCache;
+  }
+
+  if (self.navigator && self.navigator.onLine === false) {
+    return new Response('Sin conexión', { status: 503, statusText: 'Servicio no disponible' });
+  }
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+      await trimCache(cacheName);
+    }
+    if (response && response.ok) return response;
+  } catch {
+    /* red caída pese a onLine true (p. ej. throttling Offline) */
+  }
+
+  if (isHtml) {
     const shell = await caches.match('/index.html');
     if (shell) return shell;
   }
+  const again = await caches.match(request);
+  if (again) return again;
 
   return new Response('Sin conexión', { status: 503, statusText: 'Servicio no disponible' });
 }
@@ -234,7 +303,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (isApiRequest(url) || url.pathname.endsWith('mock-data.json')) {
+  /* JSON del shell en precache (STATIC). `isApiRequest` incluye *.json y mandaría el manifiesto por
+   * networkFirst → fetch fallido en offline y filas rojas en Red; el manifiesto debe ser caché primero. */
+  if (
+    url.pathname === '/mock-data.json' ||
+    url.pathname.endsWith('/mock-data.json') ||
+    url.pathname === '/manifest.json' ||
+    url.pathname.endsWith('/manifest.json')
+  ) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  if (isApiRequest(url)) {
     event.respondWith(networkFirst(request, DYNAMIC_CACHE));
     return;
   }
@@ -250,32 +331,4 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(networkCacheRace(request, DYNAMIC_CACHE));
-});
-
-self.addEventListener('sync', (event) => {
-  console.log('[SW] evento sync — etiqueta:', event.tag);
-  if (event.tag === 'dext-sync-posts') {
-    event.waitUntil(
-      Promise.resolve().then(() => {
-        console.log('[SW] Background Sync — demo: aquí se enviarían votos/publicaciones en cola al servidor');
-      })
-    );
-  }
-});
-
-self.addEventListener('push', (event) => {
-  console.log('[SW] evento push recibido');
-  let payload = '';
-  try {
-    payload = event.data ? event.data.text() : '';
-  } catch (e) {
-    payload = '(binario)';
-  }
-  console.log('[SW] carga push (demo):', payload || 'vacía — en producción usar PushManager');
-
-  event.waitUntil(
-    Promise.resolve().then(() => {
-      console.log('[SW] push — demo: aquí se mostraría una notificación al usuario');
-    })
-  );
 });

@@ -20,7 +20,7 @@ export function Communities() {
     return (
       <EmptyState
         title="No se pudieron cargar las secciones"
-        message="Comprueba tu conexión o abre la edición en línea al menos una vez para conservar el índice en caché."
+        message="Comprueba tu conexión o abre la edición en línea al menos una vez para conservar en caché."
       />
     );
   }
@@ -30,7 +30,7 @@ export function Communities() {
       <header className="page-header">
         <span className="nav-kicker">índice</span>
         <h1>Secciones</h1>
-        <p className="page-sub">Cada sección agrupa el archivo por tema editorial</p>
+        <p className="page-sub">Cada sección se agrupa por categorias</p>
       </header>
       {loading ? <p className="load-hint">Cargando…</p> : null}
       <ul className="community-list">

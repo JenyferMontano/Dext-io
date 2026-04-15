@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Navbar } from './Navbar.jsx';
 import { PopularSectionsColumn } from './PopularSectionsColumn.jsx';
 import { UserProfileRail } from './UserProfileRail.jsx';
-import { SyncFooterActions } from './SyncFooterActions.jsx';
-
 export function Layout({ children }) {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
@@ -34,8 +32,7 @@ export function Layout({ children }) {
         <UserProfileRail />
       </div>
       <footer className="site-footer" id="footer-app">
-        <p className="site-footer-tagline">Dext.io · edición digital · aplicación sin recarga</p>
-        <SyncFooterActions />
+        <p className="site-footer-tagline">Dext.io · edición digital </p>
       </footer>
     </div>
   );

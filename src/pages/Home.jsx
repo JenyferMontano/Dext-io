@@ -33,7 +33,7 @@ export function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await getPosts({ page: nextPage, includeRemote: true });
+      const res = await getPosts({ page: nextPage });
       setPosts((prev) => (nextPage === 1 ? res.posts : [...prev, ...res.posts]));
       setHasMore(res.hasMore);
       pageRef.current = nextPage;
@@ -182,7 +182,6 @@ export function Home() {
 
       <div ref={sentinelRef} className="scroll-sentinel" aria-hidden />
       {loading ? <p className="load-hint">Cargando archivo…</p> : null}
-      {!hasMore && posts.length > 0 ? <p className="load-hint">Fin del archivo en esta sesión</p> : null}
     </section>
   );
 }

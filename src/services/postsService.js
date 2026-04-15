@@ -7,6 +7,8 @@ import { FALLBACK_PAYLOAD } from './fallbackData.js';
 const PAGE_SIZE = 6;
 
 let memoryCache = null;
+/** Una sola petición en vuelo hasta resolver `memoryCache` (evita varios fetch a mock-data.json al montar la portada). */
+let loadPayloadInflight = null;
 
 function normalizePost(row) {
   return {
@@ -18,41 +20,22 @@ function normalizePost(row) {
 
 async function loadPayload() {
   if (memoryCache) return memoryCache;
-  try {
-    const res = await fetch('/mock-data.json');
-    if (!res.ok) throw new Error(String(res.status));
-    memoryCache = await res.json();
-    return memoryCache;
-  } catch {
-    console.warn('[postsService] Usando datos de respaldo embebidos');
-    memoryCache = FALLBACK_PAYLOAD;
-    return memoryCache;
-  }
-}
-
-/**
- * Opcional: JSONPlaceholder para unas pocas publicaciones extra (solo con red).
- */
-async function tryRemotePosts() {
-  try {
-    const res = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=3');
-    if (!res.ok) return [];
-    const rows = await res.json();
-    return rows.map((r, i) => ({
-      id: `jp-${r.id}`,
-      title: `Publicación de demostración ${i + 1} (API pública)`,
-      content:
-        'Texto de ejemplo obtenido de internet para simular contenido extra cuando hay conexión. Los datos reales de la API están en inglés; aquí se muestra un resumen en español.',
-      author: 'api_demo',
-      userId: 'ext',
-      communityId: 'tech',
-      recommendations: 10 + i,
-      publishedAt: new Date(Date.now() - (i + 1) * 86400000).toISOString(),
-      imageUrl: null,
-    }));
-  } catch {
-    return [];
-  }
+  if (loadPayloadInflight) return loadPayloadInflight;
+  loadPayloadInflight = (async () => {
+    try {
+      const res = await fetch('/mock-data.json');
+      if (!res.ok) throw new Error(String(res.status));
+      memoryCache = await res.json();
+      return memoryCache;
+    } catch {
+      console.warn('[postsService] Usando datos de respaldo embebidos');
+      memoryCache = FALLBACK_PAYLOAD;
+      return memoryCache;
+    } finally {
+      loadPayloadInflight = null;
+    }
+  })();
+  return loadPayloadInflight;
 }
 
 export async function getCommunities() {
@@ -75,21 +58,13 @@ export async function getUser(userId) {
 
 /**
  * Publicaciones paginadas con filtros opcionales.
- * @param {{ page?: number, communitySlug?: string, userId?: string, includeRemote?: boolean }} opts
+ * @param {{ page?: number, communitySlug?: string, userId?: string }} opts
  */
 export async function getPosts(opts = {}) {
   const page = Math.max(1, opts.page || 1);
   const data = await loadPayload();
   let list = data.posts.map(normalizePost);
   const pageSize = opts.userId ? 50 : PAGE_SIZE;
-
-  if (opts.includeRemote && navigator.onLine) {
-    const remote = await tryRemotePosts();
-    const ids = new Set(list.map((p) => p.id));
-    remote.forEach((p) => {
-      if (!ids.has(p.id)) list.push(p);
-    });
-  }
 
   if (opts.communitySlug) {
     const slug = opts.communitySlug;
